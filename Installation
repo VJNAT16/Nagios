@@ -1,0 +1,171 @@
+Nagios Installation and Configuration: (Source: https://visualpathdevopsmaterial.blogspot.com/2019/01/what-is-nagios-installation-and-configuration-of-nagios.html)
+
+Nagios: Nagios is an open source and free computer-software application can be used to monitor systems, networks, and infrastructure. Nagios offers to monitor and alerting
+services for servers, switches, applications, and services. It alerts users when things go wrong and alert them a second time after the problem has been resolved.
+
+Network Monitoring: When it comes to open source network monitoring tools, the World’s largest organizations turn to Nagios. Nagios monitors the network for problems
+caused by overloaded data links or network connections, as well as monitoring routers, switches and more. Easily able to monitor availability, uptime and response time
+of every node on the network, Nagios can deliver the results in a variety of visual representations and reports.
+
+Server Monitoring: Nagios is known for being the best server monitoring software on the market. Server monitoring is made easy in Nagios because of the flexibility to
+monitor your servers with both agent-based and agentless monitoring. With over 5000 different add-ons available to monitor your servers, the community at the Nagios
+Exchange have left no stone unturned.
+
+Application Monitoring: Implementing effective application monitoring with Nagios allows your organization to quickly detect application, service, or process problems,
+and take action to eliminate downtime for your application users. Nagios provides tools for monitoring of applications and application state – including
+Windows applications, Linux applications, UNIX applications, and Web applications.
+
+Prerequisites
+To follow this tutorial, you must have superuser privileges on the Ubuntu 14.04 server that will run Nagios. Ideally, you will be using a non-root user with superuser
+privileges.
+
+LAMP Stack Script:
+
+Nagios runs on LAMP stack which can be installed by below mentioned script.
+$ cat lampstack.sh
+apt-get update
+apt-get install apache2 mysql-server php5-mysql vim php5 libapache2-mod-php5 php5-mcrypt
+sudo mysql_install_db
+sudo mysql_secure_installation
+echo -e "<'IfModule mod_dir.c>\n DirectoryIndex index.php index.html index.cgi index.pl index.xhtml index.htm\n<'/IfModule>" > /etc/apache2/mods-enabled/dir.conf
+service apache2 restart
+apt-get install php5-cli
+LAMP stack is also required.
+
+NAGIOS SETUP: Create the Nagios user and group
+
+Create a Nagios user and a group.
+sudo add user nagios
+sudo add group nagcmd
+sudo user-mod –a –G nagcmd nagios
+
+Install the dependencies: First, update your apt-get package lists:
+
+sudo apt-get update
+Let’s install all the dependencies we will need to install Nagios with this command sudo apt-get install
+build-essential libgd2-xpm-dev openssl libssl-dev xinetd apache2-utils unzip apache2-utils, which will be used to set up the Nagios web interface.
+As we are building the nagios core from the source, we should need all these libraries to be installed.
+
+Install Nagios core:
+
+For installing we have placed all the commands together and made as a script Vi naginstall.sh
+# move to the home directory
+cd ~
+#Download the Nagios tar file from this URL
+curl -L -O https://assets.nagios.com/downloads/nagioscore/releases/nagios-4.1.1.tar.gz
+#Extract the Nagios archive with this command:
+tar xvf nagios-*.tar.gz
+#Then change to the extracted directory:
+cd nagios-*
+#Before building Nagios, we must configure it.
+./configure --with-nagios-group=nagios --with-command-group=nagcmd --with-mail=/usr/sbin/sendmail
+#Now compile Nagios with this command:
+make all
+#Now we can run these make commands below to build and install Nagios, init scripts, and sample configuration
+files:
+sudo make install
+sudo make install-commandmode
+sudo make install-init
+sudo make install-config
+sudo /usr/bin/install -c -m 644 sample-config/httpd.conf /etc/apache2/sites-available
+#To issue external commands via the web interface to Nagios, we must add the web server user, www-data, to the nagcmd group:
+sudo usermod -G nagcmd www-data
+Execute the above script to install nagios core
+#./ naginstall.sh
+
+Install the Nagios Plugins:
+
+Vi npinstall.sh
+#move to user’s home directory
+cd ~
+#download the tar file for the Nagios plugins using the command
+curl -L -O http://nagios-plugins.org/download/nagios-plugins-2.1.1.tar.gz
+#Extract Nagios Plugins archive with this command:
+tar xvf nagios-plugins-*.tar.gz
+#Then change to the extracted directory:
+cd nagios-plugins-*
+#Before building Nagios Plugins, we must configure it. Use this command:
+./configure --with-nagios-user=nagios --with-nagios-group=nagios --with-openssl
+#Now compile Nagios Plugins with this command:
+Make
+#Then install it with this command:
+sudo make install
+Execute the above script to complete the installation with the nagios plugins
+#./ npinstall.sh
+
+Install NRPE:
+
+Find the source code for the latest stable release of NRPE at the NRPE downloads page. Download the latest version to your Nagios server.
+At the time of this writing, the latest release is 2.15.:
+Vi nrpeinstall.sh
+#move to the home directory for the user
+cd ~
+#download the tar file to our home directory with curl
+curl -L -O http://downloads.sourceforge.net/project/nagios/nrpe-2.x/nrpe-2.15/nrpe-2.15.tar.gz
+#Extract the NRPE archive with this command:
+tar xvf nrpe-*.tar.gz
+#Then change to the extracted directory:
+cd nrpe-*
+#Configure NRPE with these commands:
+./configure --enable-command-args --with-nagios-user=nagios --with-nagios-group=nagios --with-ssl=/usr/bin/openssl --with-ssl-lib=/usr/lib/x86_64-linux-gnu
+#Now build and install NRPE and its xinetd startup script with these commands:
+make all
+sudo make install
+sudo make install-xinetd
+sudo make install-daemon-config
+Now open the xinetd startup script in an editor:
+sudo vi /etc/xinetd.d/nrpe
+In the file modify the only_from line by adding the private IP address of the your Nagios server to the end (substitute in the actual IP address of your server):
+only_from = 127.0.0.1 192.168.1.20
+
+Save and exit. Only the Nagios server will be allowed to communicate with NRPE.
+Restart the xinetd service to start NRPE:
+sudo service xinetd restart
+
+Configure Nagios:
+
+Open the Nagios configuration file:
+sudo vi /usr/local/nagios/etc/nagios.cfg
+#cfg_dir=/usr/local/nagios/etc/servers
+#cfg_dir=/usr/local/nagios/etc/printers
+#cfg_dir=/usr/local/nagios/etc/switches
+#cfg_dir=/usr/local/nagios/etc/routers
+Uncomment all the devices you will be monitoring, and save the file.
+Now create the directories for all the devices you will be monitoring in each of those paths above: for example type sudo mkdir /usr/local/nagios/etc/servers for the servers.
+
+Configure Nagios Contacts:
+
+In order to receive notifications from Nagios you need to configure the contacts. open the contact configuration file, and add the email address you want to receive the emails from Nagios.
+Find the email directive, and replace its value nagios@localhost with our own email address nagiosadmin@gmail.com ( Taken Randomly)
+sudo vi /usr/local/nagios/etc/objects/contacts.cfg email nagios@localhost ; <<***** CHANGE THIS TO YOUR EMAIL ADDRESS ******
+
+In the screenshot, we also seen a contact group created to whom nagios should send notifications. The contact “nagiosadmin” is added to the contact group named “admins”
+
+Configure the NRPE command:
+
+Open the command configuration file sudo nano /usr/local/nagios/etc/objects/commands.cfg and add the following command at the end of the file:
+define command {
+command_name check_nrpe
+command_line $USER1$/check_nrpe -H $HOSTADDRESS$ -c $ARG1$ }
+
+Configure Apache
+Enable mod_rewrite 
+sudo a2enmod rewrite 
+enable the CGI module 
+sudo a2enmod cgi
+Create the default Nagios account to login to the Nagios using this command,
+sudo htpasswd -c /usr/local/nagios/etc/htpasswd.users nagiosadmin 
+enter the password when prompted:
+
+
+Create a symbolic link from the nagios.conf file to the apache enabled sites:
+sudo ln -s /etc/apache2/sites-available/nagios.conf /etc/apache2/sites-enabled/
+Start Nagios and restart Apache
+sudo service nagios start 
+sudo service apache2 restart 
+To start Nagios at every server reboot, create this symbolic link 
+sudo ln -s /etc/init.d/nagios /etc/rcS.d/S99nagios
+
+  
+  
+  
