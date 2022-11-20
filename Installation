@@ -152,22 +152,6 @@ Windows applications, Linux applications, UNIX applications, and Web application
 #######################################################################################################################################################################
 
 
-Prerequisites
-To follow this tutorial, you must have superuser privileges on the Ubuntu 14.04 server that will run Nagios. Ideally, you will be using a non-root user with superuser
-privileges.
-
-LAMP Stack Script:
-
-Nagios runs on LAMP stack which can be installed by below mentioned script.
-$ cat lampstack.sh
-apt-get update
-apt-get install apache2 mysql-server php5-mysql vim php5 libapache2-mod-php5 php5-mcrypt
-sudo mysql_install_db
-sudo mysql_secure_installation
-echo -e "<'IfModule mod_dir.c>\n DirectoryIndex index.php index.html index.cgi index.pl index.xhtml index.htm\n<'/IfModule>" > /etc/apache2/mods-enabled/dir.conf
-service apache2 restart
-apt-get install php5-cli
-LAMP stack is also required.
 
 
 
